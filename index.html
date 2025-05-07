@@ -2,99 +2,127 @@
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<title>guildhall.sh</title>
 	<style>
+		/* ───────── Appearance ───────────────────────────────────────────── */
 		body {
 			margin: 0;
-			padding: 0;
-			background-color: #1a1b26;
-			/* Tokyo Night background */
-			color: #a9b1d6;
-			/* Tokyo Night foreground */
-			font-family: 'Courier New', monospace;
+			padding: 50px;
+			box-sizing: border-box;
 			height: 100vh;
 			display: flex;
 			justify-content: flex-start;
 			align-items: flex-start;
-			padding: 50px;
-			box-sizing: border-box;
+			font-family: 'Courier New', monospace;
+			background: #1a1b26;
+			/* Tokyo Night background */
+			color: #a9b1d6;
+			/* default foreground */
 		}
 
 		.terminal {
 			width: 100%;
-			max-width: 800px;
+			max-width: 800px
 		}
 
 		.input-line {
 			display: flex;
 			align-items: center;
-			margin-bottom: 10px;
+			margin-bottom: 10px
 		}
 
-		.prompt {
+		/* prompt >>> colouring */
+		.prompt-part1 {
 			color: #7aa2f7;
-			/* Tokyo Night blue */
-			margin-right: 10px;
+			font-weight: bold
+		}
+
+		.prompt-part2 {
+			color: #9ece6a;
+			font-weight: bold
+		}
+
+		.prompt-part3 {
+			color: #bb9af7;
+			font-weight: bold
 		}
 
 		#command-input {
+			flex-grow: 1;
 			background: transparent;
 			border: none;
-			color: #a9b1d6;
-			/* Tokyo Night foreground */
-			font-family: 'Courier New', monospace;
-			font-size: 16px;
-			flex-grow: 1;
 			outline: none;
+			font-family: inherit;
+			font-size: 16px;
+			color: inherit;
+			caret-color: #a9b1d6
 		}
 
 		.output {
 			margin-top: 20px;
 			white-space: pre-wrap;
-			font-family: 'Courier New', monospace;
 			line-height: 1.3;
+			font-family: inherit
 		}
 
 		.connecting {
-			color: #9ece6a;
-			/* Tokyo Night green */
+			color: #9ece6a
 		}
 
 		.success {
-			color: #9ece6a;
-			/* Tokyo Night green */
+			color: #9ece6a
 		}
 
 		.ascii-art {
 			color: #bb9af7;
-			/* Tokyo Night purple */
+			white-space: pre
 		}
 
-		.cursor {
-			display: inline-block;
-			width: 10px;
-			height: 16px;
-			background-color: #a9b1d6;
-			animation: blink 1s step-end infinite;
+		.border {
+			color: #7aa2f7;
+			font-weight: bold
+		}
+
+		/* intro colour coding */
+		.intro-header {
+			color: #9ece6a;
+			font-weight: bold
+		}
+
+		.bullet-line {
+			color: #c0caf5
+		}
+
+		.bullet-line .bullet {
+			color: #e0af68;
+			font-weight: bold
+		}
+
+		.point-line {
+			color: #c0caf5
+		}
+
+		.blinking-cursor {
+			animation: blink 1s steps(1) infinite
 		}
 
 		@keyframes blink {
 
 			0%,
 			100% {
-				opacity: 1;
+				opacity: 1
 			}
 
 			50% {
-				opacity: 0;
+				opacity: 0
 			}
 		}
 
-		@media (max-width: 600px) {
+		@media(max-width:600px) {
 			body {
-				padding: 20px;
+				padding: 20px
 			}
 		}
 	</style>
@@ -103,116 +131,140 @@
 <body>
 	<div class="terminal">
 		<div class="input-line">
-			<span class="prompt">→</span>
-			<input type="text" id="command-input" autofocus spellcheck="false" value="ssh guildhall.sh">
-			<span class="cursor"></span>
+			<span class="prompt-container" data-prompt></span>
+			<input type="text" id="command-input" autofocus spellcheck="false" />
 		</div>
 		<div class="output" id="output"></div>
 	</div>
 
 	<script>
-		const commandInput = document.getElementById('command-input');
+		/* ───────── Constants ───────────────────────────────────────────── */
+		const PROMPT_HTML = '<span class="prompt"><span class="prompt-part1">&gt;</span><span class="prompt-part2">&gt;</span><span class="prompt-part3">&gt;</span>&nbsp;</span>';
+
+		const ASCII_HALL = [
+			'  __   .__              .__             .__   .__   ',
+			'_/  |_ |  |__    ____   |  |__  _____   |  |  |  |  ',
+			'\   __\|  |  \ _/ __ \  |  |  \ \__  \  |  |  |  |  ',
+			' |  |  |   Y  \\  ___/  |   Y  \ / __ \_|  |__|  |__',
+			' |__|  |___|  / \___  > |___|  /(____  /|____/|____/',
+			'            \/      \/       \/      \/             '
+		];
+		const BANNER_WIDTH = Math.max(...ASCII_HALL.map(l => l.length));
+
+		const BANNER_WIDTH = Math.max(...ASCII_HALL.map(l => l.length));
+
+		/* ───────── DOM references ──────────────────────────────────────── */
+		const cmdInput = document.getElementById('command-input');
 		const output = document.getElementById('output');
+		document.querySelector('[data-prompt]').innerHTML = PROMPT_HTML;
 
-		// Simulate typing the initial command
-		let initialCommand = "ssh guildhall.sh";
-		commandInput.value = "";
-		let i = 0;
-
-		function typeInitialCommand() {
-			if (i < initialCommand.length) {
-				commandInput.value += initialCommand.charAt(i);
-				i++;
-				setTimeout(typeInitialCommand, 100);
-			} else {
-				// After typing is complete, wait a moment and then simulate Enter press
-				setTimeout(simulateEnter, 500);
-			}
-		}
-
-		function simulateEnter() {
-			handleCommand(commandInput.value);
-		}
-
-		// Start typing effect after page loads
-		window.onload = function () {
-			setTimeout(typeInitialCommand, 1000);
+		/* ───────── Helpers ─────────────────────────────────────────────── */
+		const append = line => output.innerHTML += `${line}\n`;
+		const bannerBar = (label = '') => {
+			if (!label) return '='.repeat(BANNER_WIDTH);
+			const pad = BANNER_WIDTH - label.length - 2;
+			return `${'='.repeat(Math.floor(pad / 2))} ${label} ${'='.repeat(Math.ceil(pad / 2))}`;
 		};
 
-		commandInput.addEventListener('keydown', function (e) {
-			if (e.key === 'Enter') {
-				e.preventDefault();
-				handleCommand(commandInput.value);
-			}
+		/* ───────── Auto‑type initial command ───────────────────────────── */
+		const AUTO_CMD = 'ssh guildhall.sh';
+		let idx = 0;
+		function typeAuto() {
+			if (idx < AUTO_CMD.length) {
+				cmdInput.value += AUTO_CMD.charAt(idx++);
+				setTimeout(typeAuto, 100);
+			} else setTimeout(execAuto, 500);
+		}
+		function execAuto() {autoSubmit();}
+		window.onload = () => setTimeout(typeAuto, 1000);
+
+		/* ───────── Mobile‑friendly auto‑submit ─────────────────────────── */
+		let typingTimer;
+		cmdInput.addEventListener('input', () => {
+			clearTimeout(typingTimer);
+			typingTimer = setTimeout(() => {
+				if (cmdInput.value.trim().toLowerCase() === 'ssh guildhall.sh') autoSubmit();
+			}, 800);
 		});
+		cmdInput.addEventListener('keydown', e => {if (e.key === 'Enter') {e.preventDefault(); autoSubmit();} });
 
-		function handleCommand(cmd) {
-			// Display the command in the output
-			output.innerHTML = '';
+		function autoSubmit() {
+			const command = cmdInput.value.trim();
+			submitCmd(command);
+			/* hide original input line */
+			cmdInput.parentElement.style.display = 'none';
+		}
 
-			if (cmd.trim().toLowerCase() === 'ssh guildhall.sh') {
-				// Simulate SSH connection
-				output.innerHTML += '<div class="connecting">Connecting to guildhall.sh...</div>';
+		/* ───────── Command processor ──────────────────────────────────── */
+		function submitCmd(cmd) {
+			append(`<div class="input-line">${PROMPT_HTML}<span>${cmd}</span></div>`);
+			if (cmd.toLowerCase() === 'ssh guildhall.sh') handshake();
+			else append('<div>Command not recognized. Try "ssh guildhall.sh"</div>');
+		}
 
-				setTimeout(() => {
-					output.innerHTML += '<div class="connecting">Establishing secure connection...</div>';
+		function handshake() {
+			append('<div class="connecting">Connecting to guildhall.sh...</div>');
+			setTimeout(() => {
+				append('<div class="connecting">Establishing secure connection...</div>');
+				setTimeout(showBanner, 1000);
+			}, 1000);
+		}
 
-					setTimeout(() => {
-						output.innerHTML += '<div class="success">Connection established!</div>';
-						output.innerHTML += '<pre class="ascii-art">      ___           ___                       ___       ___           ___           ___           ___       ___ </pre>';
-						output.innerHTML += '<pre class="ascii-art">     /\\  \\         /\\__\\          ___        /\\__\\     /\\  \\         /\\__\\         /\\  \\         /\\__\\     /\\__\\</pre>';
-						output.innerHTML += '<pre class="ascii-art">    /::\\  \\       /:/  /         /\\  \\      /:/  /    /::\\  \\       /:/  /        /::\\  \\       /:/  /    /:/  /</pre>';
-						output.innerHTML += '<pre class="ascii-art">   /:/\\:\\  \\     /:/  /          \\:\\  \\    /:/  /    /:/\\:\\  \\     /:/__/        /:/\\:\\  \\     /:/  /    /:/  / </pre>';
-						output.innerHTML += '<pre class="ascii-art">  /:/  \\:\\  \\   /:/  /  ___      /::\\__\\  /:/  /    /:/  \\:\\__\\   /::\\  \\ ___   /::\\~\\:\\  \\   /:/  /    /:/  /  </pre>';
-						output.innerHTML += '<pre class="ascii-art"> /:/__/_\\:\\__\\ /:/__/  /\\__\\  __/:/\\/__/ /:/__/    /:/__/ \\:|__| /:/\\:\\  /\\__\\ /:/\\:\\ \\:\\__\\ /:/__/    /:/__/   </pre>';
-						output.innerHTML += '<pre class="ascii-art"> \\:\\  /\\ \\/__/ \\:\\  \\ /:/  / /\\/:/  /    \\:\\  \\    \\:\\  \\ /:/  / \\/__\\:\\/:/  / \\/__\\:\\/:/  / \\:\\  \\    \\:\\  \\   </pre>';
-						output.innerHTML += '<pre class="ascii-art">  \\:\\ \\:\\__\\    \\:\\  /:/  /  \\::/__/      \\:\\  \\    \\:\\  /:/  /       \\::/  /       \\::/  /   \\:\\  \\    \\:\\  \\  </pre>';
-						output.innerHTML += '<pre class="ascii-art">   \\:\\/:/  /     \\:\\/:/  /    \\:\\__\\       \\:\\  \\    \\:\\/:/  /        /:/  /        /:/  /     \\:\\  \\    \\:\\  \\ </pre>';
-						output.innerHTML += '<pre class="ascii-art">    \\::/  /       \\::/  /      \\/__/        \\:\\__\\    \\::/__/        /:/  /        /:/  /       \\:\\__\\    \\:\\__\\</pre>';
-						output.innerHTML += '<pre class="ascii-art">     \\/__/         \\/__/                     \\/__/     ~~            \\/__/         \\/__/         \\/__/     \\/__/</pre>';
-						output.innerHTML += '<pre class="ascii-art">  A radically‑open, terminal‑first playground for builders & learners</pre>';
-						output.innerHTML += '<pre class="ascii-art">============================================================================</pre>';
-						output.innerHTML += '<pre></pre>';
-						output.innerHTML += '<pre>📜  WHAT IS THIS PLACE?</pre>';
-						output.innerHTML += '<pre>    • A shared Nix‑powered server where anyone can explore our project docs.</pre>';
-						output.innerHTML += '<pre>    • Pay once ($5) or subscribe ($9/mo) to unlock a **persistent workstation**.</pre>';
-						output.innerHTML += '<pre>    • Everything—roadmaps, market research, even this banner—is public in GitHub.</pre>';
-						output.innerHTML += '<pre></pre>';
-						output.innerHTML += '<pre>🗺️  QUICK TOUR  (guest mode)</pre>';
-						output.innerHTML += '<pre>    • `ls ~/docs`            → browse Markdown artifacts</pre>';
-						output.innerHTML += '<pre>    • `less ~/docs/README.md`→ start reading</pre>';
-						output.innerHTML += '<pre>    • `exit`                 → leave the hall</pre>';
-						output.innerHTML += '<pre></pre>';
-						output.innerHTML += '<pre>💎  WANT YOUR OWN ROOM?</pre>';
-						output.innerHTML += '<pre>    1. Visit https://guildhall.sh/subscribe</pre>';
-						output.innerHTML += '<pre>    2. Complete checkout (Stripe)</pre>';
-						output.innerHTML += '<pre>    3. Receive your username & temporary password **or** upload an SSH key</pre>';
-						output.innerHTML += '<pre>    4. Re‑connect as `ssh <user>@guildhall.sh`</pre>';
-						output.innerHTML += '<pre></pre>';
-						output.innerHTML += '<pre>🔑  AFTER FIRST LOGIN (members)</pre>';
-						output.innerHTML += '<pre>    • `passwd`                 → change temp password</pre>';
-						output.innerHTML += '<pre>    • `guildctl upload-key`    → add an SSH key & disable password auth</pre>';
-						output.innerHTML += '<pre>    • `home-manager switch`    → tweak your Nix environment</pre>';
-						output.innerHTML += '<pre></pre>';
-						output.innerHTML += '<pre>🤝  RADICAL OPENNESS</pre>';
-						output.innerHTML += '<pre>    • All decisions live in GitHub Issues → https://github.com/the‑guildhall</pre>';
-						output.innerHTML += '<pre>    • Contribute docs, code, or ideas—your commits make the hall grow.</pre>';
-						output.innerHTML += '<pre>    • Code of Conduct: be excellent to each other.</pre>';
-						output.innerHTML += '<pre></pre>';
-						output.innerHTML += '<pre>⚠️  HOUSE RULES</pre>';
-						output.innerHTML += '<pre>    • No crypto‑mining, spam, or port‑scanning.</pre>';
-						output.innerHTML += '<pre>    • Activity may be logged for abuse prevention.</pre>';
-						output.innerHTML += '<pre>    • Abuse it and we drop the portcullis. 🛡️</pre>';
-						output.innerHTML += '<pre></pre>';
-						output.innerHTML += '<pre>Type `help` (or read the docs) to begin.  </pre>';
-						output.innerHTML += '<pre>Happy hacking, and welcome to the Hall!</pre>';
-						output.innerHTML += '<pre></pre>';
-						output.innerHTML += '<div>Last login: ' + new Date().toUTCString() + '</div>';
-					}, 1000);
-				}, 1000);
-			} else {
-				output.innerHTML += '<div>Command not recognized. Try "ssh guildhall.sh"</div>';
-			}
+		/* ───────── Banner / MOTD ───────────────────────────────────────── */
+		function showBanner() {
+			append('<div class="success">Connection established!</div>');
+			append(`<pre class="border">${bannerBar('Welcome to')}</pre>`);
+			ASCII_HALL.forEach(l => append(`<pre class="ascii-art">${l}</pre>`));
+			append(`<pre class="border">${bannerBar()}</pre>`);
+
+			const intro = [
+				{type: 'header', text: '📜  WHAT IS THIS PLACE?'},
+				{type: 'bullet', text: '• A shared Nix‑powered server where anyone can explore our project docs.'},
+				{type: 'bullet', text: '• Pay once ($5) or subscribe ($9/mo) to unlock a **persistent workstation**.'},
+				{type: 'bullet', text: '• Everything—roadmaps, market research, even this banner—is public in GitHub.'},
+				{type: 'blank'},
+				{type: 'header', text: '🗺️  QUICK TOUR  (guest mode)'},
+				{type: 'bullet', text: '• `ls ~/docs`            → browse Markdown artifacts'},
+				{type: 'bullet', text: '• `less ~/docs/README.md`→ start reading'},
+				{type: 'bullet', text: '• `exit`                 → leave the hall'},
+				{type: 'blank'},
+				{type: 'header', text: '💎  WANT YOUR OWN ROOM?'},
+				{type: 'point', text: '1. Visit https://guildhall.site/subscribe'},
+				{type: 'point', text: '2. Complete checkout (Stripe)'},
+				{type: 'point', text: '3. Receive your username & temporary password **or** upload an SSH key'},
+				{type: 'point', text: '4. Re‑connect as `ssh <user>@guildhall.site`'},
+				{type: 'blank'},
+				{type: 'header', text: '🔑  AFTER FIRST LOGIN (members)'},
+				{type: 'bullet', text: '• `passwd`                 → change temp password'},
+				{type: 'bullet', text: '• `guildctl upload-key`    → add an SSH key & disable password auth'},
+				{type: 'bullet', text: '• `home-manager switch`    → tweak your Nix environment'},
+				{type: 'blank'},
+				{type: 'header', text: '🤝  RADICAL OPENNESS'},
+				{type: 'bullet', text: '• All decisions live in GitHub Issues → https://github.com/the‑guildhall'},
+				{type: 'bullet', text: '• Contribute docs, code, or ideas—your commits make the hall grow.'},
+				{type: 'bullet', text: '• Code of Conduct: be excellent to each other.'},
+				{type: 'blank'},
+				{type: 'header', text: '⚠️  HOUSE RULES'},
+				{type: 'bullet', text: '• No crypto‑mining, spam, or port‑scanning.'},
+				{type: 'bullet', text: '• Activity may be logged for abuse prevention.'},
+				{type: 'bullet', text: '• Abuse it and we drop the portcullis. 🛡️'},
+				{type: 'blank'},
+				{type: 'point', text: 'Type `help` (or read the docs) to begin.'},
+				{type: 'point', text: 'Happy hacking, and welcome to the Hall!'}
+			];
+
+			intro.forEach(item => {
+				if (item.type === 'blank') {append('<pre class="point-line"> </pre>'); return;}
+				if (item.type === 'header') {
+					append(`<pre class="intro-header">${item.text}</pre>`);
+				} else if (item.type === 'bullet') {
+					const line = item.text.replace('•', '<span class="bullet">•</span>');
+					append(`<pre class="bullet-line">${line}</pre>`);
+				} else {append(`<pre class="point-line">${item.text}</pre>`);}
+			});
+
+			append(`<div>Last login: ${new Date().toUTCString()}</div>`);
+			append(`<div class="input-line">${PROMPT_HTML}<span class="blinking-cursor">█</span></div>`);
 		}
 	</script>
 </body>

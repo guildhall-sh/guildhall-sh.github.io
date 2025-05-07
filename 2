@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>guildhall.sh</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1b26; /* Tokyo Night background */
+            color: #a9b1d6; /* Tokyo Night foreground */
+            font-family: 'Courier New', monospace;
+            height: 100vh;
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+            padding: 50px;
+            box-sizing: border-box;
+        }
+
+        .terminal {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .input-line {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .prompt {
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .prompt-part1 {
+            color: #7aa2f7; /* Tokyo Night blue */
+        }
+
+        .prompt-part2 {
+            color: #9ece6a; /* Tokyo Night green */
+        }
+
+        .prompt-part3 {
+            color: #bb9af7; /* Tokyo Night purple */
+        }
+
+        #command-input {
+            background: transparent;
+            border: none;
+            color: #a9b1d6; /* Tokyo Night foreground */
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            flex-grow: 1;
+            outline: none;
+        }
+
+        .output {
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            line-height: 1.3;
+        }
+
+        .connecting {
+            color: #9ece6a; /* Tokyo Night green */
+        }
+
+        .success {
+            color: #9ece6a; /* Tokyo Night green */
+        }
+
+        .ascii-art {
+            color: #bb9af7; /* Tokyo Night purple */
+        }
+
+        .border {
+            color: #7aa2f7; /* Tokyo Night blue */
+            font-weight: bold;
+        }
+
+        .intro {
+            color: #bb9af7; /* Tokyo Night purple */
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <div class="input-line">
+            <span class="prompt">→</span>
+            <input type="text" id="command-input" autofocus spellcheck="false" value="ssh gillhall.sh">
+            <span class="cursor"></span>
+        </div>
+        <div class="output" id="output"></div>
+    </div>
+
+    <script>
+        const commandInput = document.getElementById('command-input');
+        const output = document.getElementById('output');
+
+        // Simulate typing the initial command
+        let initialCommand = "ssh guildhall.sh";
+        commandInput.value = "";
+        let i = 0;
+
+        function typeInitialCommand() {
+            if (i < initialCommand.length) {
+                commandInput.value += initialCommand.charAt(i);
+                i++;
+                setTimeout(typeInitialCommand, 100);
+            } else {
+                // After typing is complete, wait a moment and then simulate Enter press
+                setTimeout(simulateEnter, 500);
+            }
+        }
+
+        function simulateEnter() {
+            handleCommand(commandInput.value);
+        }
+
+        // Start typing effect after page loads
+        window.onload = function() {
+            setTimeout(typeInitialCommand, 1000);
+        };
+
+        commandInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleCommand(commandInput.value);
+            }
+        });
+
+        function handleCommand(cmd) {
+            // Display the command in the output
+            output.innerHTML = '';
+
+            if (cmd.trim().toLowerCase() === 'ssh guildhall.sh') {
+                // Simulate SSH connection
+                output.innerHTML += '<div class="connecting">Connecting to gillhall.sh...</div>';
+
+                setTimeout(() => {
+                    output.innerHTML += '<div class="connecting">Establishing secure connection...</div>';
+
+                    setTimeout(() => {
+                        output.innerHTML += '<div class="success">Connection established!</div>';
+                        output.innerHTML += '<pre class="border">======================== Welcome to ========================</pre>';
+                        output.innerHTML += '<pre class="ascii-art">      ___           ___           ___                    ___           ___           ___       ___ </pre>';
+                        output.innerHTML += '<pre class="ascii-art">     /\\  \\         /\\__\\         /\\  \\                  /\\__\\         /\\  \\         /\\__\\     /\\__\\</pre>';
+                        output.innerHTML += '<pre class="ascii-art">     \\:\\  \\       /:/  /        /::\\  \\                /:/  /        /::\\  \\       /:/  /    /:/  /</pre>';
+                        output.innerHTML += '<pre class="ascii-art">      \\:\\  \\     /:/__/        /:/\\:\\  \\              /:/__/        /:/\\:\\  \\     /:/  /    /:/  / </pre>';
+                        output.innerHTML += '<pre class="ascii-art">      /::\\  \\   /::\\  \\ ___   /::\\~\\:\\  \\            /::\\  \\ ___   /::\\~\\:\\  \\   /:/  /    /:/  /  </pre>';
+                        output.innerHTML += '<pre class="ascii-art">     /:/\\:\\__\\ /:/\\:\\  /\\__\\ /:/\\:\\ \\:\\__\\          /:/\\:\\  /\\__\\ /:/\\:\\ \\:\\__\\ /:/__/    /:/__/   </pre>';
+                        output.innerHTML += '<pre class="ascii-art">    /:/  \\/__/ \\/__\\:\\/:/  / \\:\\~\\:\\ \\/__/          \\/__\\:\\/:/  / \\/__\\:\\/:/  / \\:\\  \\    \\:\\  \\   </pre>';
+                        output.innerHTML += '<pre class="ascii-art">   /:/  /           \\::/  /   \\:\\ \\:\\__\\                 \\::/  /       \\::/  /   \\:\\  \\    \\:\\  \\  </pre>';
+                        output.innerHTML += '<pre class="ascii-art">   \\/__/            /:/  /     \\:\\ \\/__/                 /:/  /        /:/  /     \\:\\  \\    \\:\\  \\ </pre>';
+                        output.innerHTML += '<pre class="ascii-art">                   /:/  /       \\:\\__\\                  /:/  /        /:/  /       \\:\\__\\    \\:\\__\\</pre>';
+                        output.innerHTML += '<pre class="ascii-art">                   \\/__/         \\/__/                  \\/__/         \\/__/         \\/__/     \\/__/</pre>';
+                        output.innerHTML += '<pre class="border">===========================================================</pre>';
+                        output.innerHTML += '<pre class="border">===========================================================</pre>';
+                        output.innerHTML += '<pre class="intro">📜  WHAT IS THIS PLACE?</pre>';
+                        output.innerHTML += '<pre class="intro">    • A shared Nix‑powered server where anyone can explore our project docs.</pre>';
+                        output.innerHTML += '<pre class="intro">    • Pay once ($5) or subscribe ($9/mo) to unlock a **persistent workstation**.</pre>';
+                        output.innerHTML += '<pre class="intro">    • Everything—roadmaps, market research, even this banner—is public in GitHub.</pre>';
+                        output.innerHTML += '<pre class="intro"></pre>';
+                        output.innerHTML += '<pre class="intro">🗺️  QUICK TOUR  (guest mode)</pre>';
+                        output.innerHTML += '<pre class="intro">    • `ls ~/docs`            → browse Markdown artifacts</pre>';
+                        output.innerHTML += '<pre class="intro">    • `less ~/docs/README.md`→ start reading</pre>';
+                        output.innerHTML += '<pre class="intro">    • `exit`                 → leave the hall</pre>';
+                        output.innerHTML += '<pre class="intro"></pre>';
+                        output.innerHTML += '<pre class="intro">💎  WANT YOUR OWN ROOM?</pre>';
+                        output.innerHTML += '<pre class="intro">    1. Visit https://guildhall.site/subscribe</pre>';
+                        output.innerHTML += '<pre class="intro">    2. Complete checkout (Stripe)</pre>';
+                        output.innerHTML += '<pre class="intro">    3. Receive your username & temporary password **or** upload an SSH key</pre>';
+                        output.innerHTML += '<pre class="intro">    4. Re‑connect as `ssh <user>@guildhall.site`</pre>';
+                        output.innerHTML += '<pre class="intro"></pre>';
+                        output.innerHTML += '<pre class="intro">🔑  AFTER FIRST LOGIN (members)</pre>';
+                        output.innerHTML += '<pre class="intro">    • `passwd`                 → change temp password</pre>';
+                        output.innerHTML += '<pre class="intro">    • `guildctl upload-key`    → add an SSH key & disable password auth</pre>';
+                        output.innerHTML += '<pre class="intro">    • `home-manager switch`    → tweak your Nix environment</pre>';
+                        output.innerHTML += '<pre class="intro"></pre>';
+                        output.innerHTML += '<pre class="intro">🤝  RADICAL OPENNESS</pre>';
+                        output.innerHTML += '<pre class="intro">    • All decisions live in GitHub Issues → https://github.com/the‑guildhall</pre>';
+                        output.innerHTML += '<pre class="intro">    • Contribute docs, code, or ideas—your commits make the hall grow.</pre>';
+                        output.innerHTML += '<pre class="intro">    • Code of Conduct: be excellent to each other.</pre>';
+                        output.innerHTML += '<pre class="intro"></pre>';
+                        output.innerHTML += '<pre class="intro">⚠️  HOUSE RULES</pre>';
+                        output.innerHTML += '<pre class="intro">    • No crypto‑mining, spam, or port‑scanning.</pre>';
+                        output.innerHTML += '<pre class="intro">    • Activity may be logged for abuse prevention.</pre>';
+                        output.innerHTML += '<pre class="intro">    • Abuse it and we drop the portcullis. 🛡️</pre>';
+                        output.innerHTML += '<pre class="intro"></pre>';
+                        output.innerHTML += '<pre class="intro">Type `help` (or read the docs) to begin.  </pre>';
+                        output.innerHTML += '<pre class="intro">Happy hacking, and welcome to the Hall!</pre>';
+                        output.innerHTML += '<pre class="intro"></pre>';
+                        output.innerHTML += '<div class="final-prompt"><span class="prompt-part1">&gt;</span><span class="prompt-part2">&gt;</span><span class="prompt-part3">&gt;</span> <span class="blinking-cursor">█</span></div>';
+                        output.innerHTML += '<div>Last login: ' + new Date().toUTCString() + '</div>';
+                    }, 1000);
+                }, 1000);
+            } else {
+                output.innerHTML += '<div>Command not recognized. Try "ssh gillhall.sh"</div>';
+            }
+        }
+    </script>
+</body>
+</html>
