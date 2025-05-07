@@ -6,7 +6,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<title>guildhall.sh</title>
 	<style>
-		/* ───────── Appearance ───────────────────────────────────────────── */
+		/* ─── Global look ─────────────────────────────────────────────── */
 		body {
 			margin: 0;
 			padding: 50px;
@@ -17,9 +17,9 @@
 			align-items: flex-start;
 			font-family: 'Courier New', monospace;
 			background: #1a1b26;
-			/* Tokyo Night background */
+			/* Tokyo Night bg */
 			color: #a9b1d6;
-			/* default foreground */
+			/* default fg */
 		}
 
 		.terminal {
@@ -33,7 +33,7 @@
 			margin-bottom: 10px
 		}
 
-		/* prompt >>> colouring */
+		/* prompt >>> colours */
 		.prompt-part1 {
 			color: #7aa2f7;
 			font-weight: bold
@@ -57,32 +57,37 @@
 			font-family: inherit;
 			font-size: 16px;
 			color: inherit;
-			caret-color: #a9b1d6
+			caret-color: #a9b1d6;
 		}
 
 		.output {
 			margin-top: 20px;
 			white-space: pre-wrap;
-			line-height: 1.3;
 			font-family: inherit
 		}
 
-		.connecting {
-			color: #9ece6a
+		.output pre {
+			margin: 0;
+			line-height: 1
 		}
 
+		.connecting,
 		.success {
 			color: #9ece6a
 		}
 
 		.ascii-art {
 			color: #bb9af7;
-			white-space: pre
+			white-space: pre;
+			margin: 0;
+			line-height: 1
 		}
 
 		.border {
 			color: #7aa2f7;
-			font-weight: bold
+			font-weight: bold;
+			margin: 0;
+			line-height: 1
 		}
 
 		/* intro colour coding */
@@ -130,7 +135,7 @@
 
 <body>
 	<div class="terminal">
-		<div class="input-line">
+		<div class="input-line" id="initial-line">
 			<span class="prompt-container" data-prompt></span>
 			<input type="text" id="command-input" autofocus spellcheck="false" />
 		</div>
@@ -138,47 +143,45 @@
 	</div>
 
 	<script>
-		/* ───────── Constants ───────────────────────────────────────────── */
-		const PROMPT_HTML = '<span class="prompt"><span class="prompt-part1">&gt;</span><span class="prompt-part2">&gt;</span><span class="prompt-part3">&gt;</span>&nbsp;</span>';
+		/* ─── Constants ──────────────────────────────────────────────── */
+		const PROMPT_HTML = `<span class="prompt"><span class="prompt-part1">&gt;</span><span class="prompt-part2">&gt;</span><span class="prompt-part3">&gt;</span>&nbsp;</span>`;
 
-		const ASCII_HALL = [
-			'  __   .__              .__             .__   .__   ',
-			'_/  |_ |  |__    ____   |  |__  _____   |  |  |  |  ',
-			'\   __\|  |  \ _/ __ \  |  |  \ \__  \  |  |  |  |  ',
-			' |  |  |   Y  \\  ___/  |   Y  \ / __ \_|  |__|  |__',
-			' |__|  |___|  / \___  > |___|  /(____  /|____/|____/',
-			'            \/      \/       \/      \/             '
-		];
-		const BANNER_WIDTH = Math.max(...ASCII_HALL.map(l => l.length));
+		/* Single PRE block for ASCII banner */
+		const ASCII_HALL = `
+████████ ██   ██ ███████     ██   ██  █████  ██      ██
+   ██    ██   ██ ██          ██   ██ ██   ██ ██      ██
+   ██    ███████ █████       ███████ ███████ ██      ██
+   ██    ██   ██ ██          ██   ██ ██   ██ ██      ██
+   ██    ██   ██ ███████     ██   ██ ██   ██ ███████ ███████
+`;
+		const ASCII_LINES = ASCII_HALL.trim().split('\n');
+		const BANNER_WIDTH = Math.max(...ASCII_LINES.map(l => l.length));
 
-		const BANNER_WIDTH = Math.max(...ASCII_HALL.map(l => l.length));
-
-		/* ───────── DOM references ──────────────────────────────────────── */
+		/* ─── DOM refs ───────────────────────────────────────────────── */
 		const cmdInput = document.getElementById('command-input');
 		const output = document.getElementById('output');
 		document.querySelector('[data-prompt]').innerHTML = PROMPT_HTML;
 
-		/* ───────── Helpers ─────────────────────────────────────────────── */
-		const append = line => output.innerHTML += `${line}\n`;
-		const bannerBar = (label = '') => {
+		/* ─── Helper fns ─────────────────────────────────────────────── */
+		const append = html => output.insertAdjacentHTML('beforeend', `${html}\n`);
+		const bannerBar = label => {
 			if (!label) return '='.repeat(BANNER_WIDTH);
 			const pad = BANNER_WIDTH - label.length - 2;
 			return `${'='.repeat(Math.floor(pad / 2))} ${label} ${'='.repeat(Math.ceil(pad / 2))}`;
 		};
 
-		/* ───────── Auto‑type initial command ───────────────────────────── */
+		/* ─── Auto‑type + auto‑submit initial ssh command ───────────── */
 		const AUTO_CMD = 'ssh guildhall.sh';
-		let idx = 0;
+		let autoIdx = 0;
 		function typeAuto() {
-			if (idx < AUTO_CMD.length) {
-				cmdInput.value += AUTO_CMD.charAt(idx++);
+			if (autoIdx < AUTO_CMD.length) {
+				cmdInput.value += AUTO_CMD.charAt(autoIdx++);
 				setTimeout(typeAuto, 100);
-			} else setTimeout(execAuto, 500);
+			} else setTimeout(autoSubmit, 500);
 		}
-		function execAuto() {autoSubmit();}
-		window.onload = () => setTimeout(typeAuto, 1000);
+		window.addEventListener('load', () => setTimeout(typeAuto, 1000));
 
-		/* ───────── Mobile‑friendly auto‑submit ─────────────────────────── */
+		/* ─── Input handlers (mobile friendly) ──────────────────────── */
 		let typingTimer;
 		cmdInput.addEventListener('input', () => {
 			clearTimeout(typingTimer);
@@ -189,13 +192,13 @@
 		cmdInput.addEventListener('keydown', e => {if (e.key === 'Enter') {e.preventDefault(); autoSubmit();} });
 
 		function autoSubmit() {
-			const command = cmdInput.value.trim();
-			submitCmd(command);
-			/* hide original input line */
-			cmdInput.parentElement.style.display = 'none';
+			const cmd = cmdInput.value.trim();
+			if (!cmd) return;
+			document.getElementById('initial-line').style.display = 'none';
+			submitCmd(cmd);
 		}
 
-		/* ───────── Command processor ──────────────────────────────────── */
+		/* ─── Command processing ────────────────────────────────────── */
 		function submitCmd(cmd) {
 			append(`<div class="input-line">${PROMPT_HTML}<span>${cmd}</span></div>`);
 			if (cmd.toLowerCase() === 'ssh guildhall.sh') handshake();
@@ -210,57 +213,57 @@
 			}, 1000);
 		}
 
-		/* ───────── Banner / MOTD ───────────────────────────────────────── */
+		/* ─── Banner & MOTD ─────────────────────────────────────────── */
 		function showBanner() {
 			append('<div class="success">Connection established!</div>');
 			append(`<pre class="border">${bannerBar('Welcome to')}</pre>`);
-			ASCII_HALL.forEach(l => append(`<pre class="ascii-art">${l}</pre>`));
+			append(`<pre class="ascii-art">${ASCII_HALL}</pre>`);
 			append(`<pre class="border">${bannerBar()}</pre>`);
 
 			const intro = [
-				{type: 'header', text: '📜  WHAT IS THIS PLACE?'},
-				{type: 'bullet', text: '• A shared Nix‑powered server where anyone can explore our project docs.'},
-				{type: 'bullet', text: '• Pay once ($5) or subscribe ($9/mo) to unlock a **persistent workstation**.'},
-				{type: 'bullet', text: '• Everything—roadmaps, market research, even this banner—is public in GitHub.'},
-				{type: 'blank'},
-				{type: 'header', text: '🗺️  QUICK TOUR  (guest mode)'},
-				{type: 'bullet', text: '• `ls ~/docs`            → browse Markdown artifacts'},
-				{type: 'bullet', text: '• `less ~/docs/README.md`→ start reading'},
-				{type: 'bullet', text: '• `exit`                 → leave the hall'},
-				{type: 'blank'},
-				{type: 'header', text: '💎  WANT YOUR OWN ROOM?'},
-				{type: 'point', text: '1. Visit https://guildhall.site/subscribe'},
-				{type: 'point', text: '2. Complete checkout (Stripe)'},
-				{type: 'point', text: '3. Receive your username & temporary password **or** upload an SSH key'},
-				{type: 'point', text: '4. Re‑connect as `ssh <user>@guildhall.site`'},
-				{type: 'blank'},
-				{type: 'header', text: '🔑  AFTER FIRST LOGIN (members)'},
-				{type: 'bullet', text: '• `passwd`                 → change temp password'},
-				{type: 'bullet', text: '• `guildctl upload-key`    → add an SSH key & disable password auth'},
-				{type: 'bullet', text: '• `home-manager switch`    → tweak your Nix environment'},
-				{type: 'blank'},
-				{type: 'header', text: '🤝  RADICAL OPENNESS'},
-				{type: 'bullet', text: '• All decisions live in GitHub Issues → https://github.com/the‑guildhall'},
-				{type: 'bullet', text: '• Contribute docs, code, or ideas—your commits make the hall grow.'},
-				{type: 'bullet', text: '• Code of Conduct: be excellent to each other.'},
-				{type: 'blank'},
-				{type: 'header', text: '⚠️  HOUSE RULES'},
-				{type: 'bullet', text: '• No crypto‑mining, spam, or port‑scanning.'},
-				{type: 'bullet', text: '• Activity may be logged for abuse prevention.'},
-				{type: 'bullet', text: '• Abuse it and we drop the portcullis. 🛡️'},
-				{type: 'blank'},
-				{type: 'point', text: 'Type `help` (or read the docs) to begin.'},
-				{type: 'point', text: 'Happy hacking, and welcome to the Hall!'}
+				{t: 'header', v: '📜  WHAT IS THIS PLACE?'},
+				{t: 'bullet', v: '• A shared Nix‑powered server where anyone can explore our project docs.'},
+				{t: 'bullet', v: '• Pay once ($5) or subscribe ($9/mo) to unlock a **persistent workstation**.'},
+				{t: 'bullet', v: '• Everything—roadmaps, market research, even this banner—is public in GitHub.'},
+				{t: 'blank'},
+				{t: 'header', v: '🗺️  QUICK TOUR  (guest mode)'},
+				{t: 'bullet', v: '• `ls ~/docs`            → browse Markdown artifacts'},
+				{t: 'bullet', v: '• `less ~/docs/README.md`→ start reading'},
+				{t: 'bullet', v: '• `exit`                 → leave the hall'},
+				{t: 'blank'},
+				{t: 'header', v: '💎  WANT YOUR OWN ROOM?'},
+				{t: 'point', v: '1. Visit https://guildhall.site/subscribe'},
+				{t: 'point', v: '2. Complete checkout (Stripe)'},
+				{t: 'point', v: '3. Receive your username & temporary password **or** upload an SSH key'},
+				{t: 'point', v: '4. Re‑connect as `ssh <user>@guildhall.site`'},
+				{t: 'blank'},
+				{t: 'header', v: '🔑  AFTER FIRST LOGIN (members)'},
+				{t: 'bullet', v: '• `passwd`                 → change temp password'},
+				{t: 'bullet', v: '• `guildctl upload-key`    → add an SSH key & disable password auth'},
+				{t: 'bullet', v: '• `home-manager switch`    → tweak your Nix environment'},
+				{t: 'blank'},
+				{t: 'header', v: '🤝  RADICAL OPENNESS'},
+				{t: 'bullet', v: '• All decisions live in GitHub Issues → https://github.com/the‑guildhall'},
+				{t: 'bullet', v: '• Contribute docs, code, or ideas—your commits make the hall grow.'},
+				{t: 'bullet', v: '• Code of Conduct: be excellent to each other.'},
+				{t: 'blank'},
+				{t: 'header', v: '⚠️  HOUSE RULES'},
+				{t: 'bullet', v: '• No crypto‑mining, spam, or port‑scanning.'},
+				{t: 'bullet', v: '• Activity may be logged for abuse prevention.'},
+				{t: 'bullet', v: '• Abuse it and we drop the portcullis. 🛡️'},
+				{t: 'blank'},
+				{t: 'point', v: 'Type `help` (or read the docs) to begin.'},
+				{t: 'point', v: 'Happy hacking, and welcome to the Hall!'}
 			];
 
-			intro.forEach(item => {
-				if (item.type === 'blank') {append('<pre class="point-line"> </pre>'); return;}
-				if (item.type === 'header') {
-					append(`<pre class="intro-header">${item.text}</pre>`);
-				} else if (item.type === 'bullet') {
-					const line = item.text.replace('•', '<span class="bullet">•</span>');
-					append(`<pre class="bullet-line">${line}</pre>`);
-				} else {append(`<pre class="point-line">${item.text}</pre>`);}
+			intro.forEach(i => {
+				if (i.t === 'blank') {append('<pre class="point-line"> </pre>'); return;}
+				if (i.t === 'header') {append(`<pre class="intro-header">${i.v}</pre>`);}
+				else if (i.t === 'bullet') {
+					append(`<pre class="bullet-line">${i.v.replace('•', '<span class="bullet">•</span>')}</pre>`);
+				} else {
+					append(`<pre class="point-line">${i.v}</pre>`);
+				}
 			});
 
 			append(`<div>Last login: ${new Date().toUTCString()}</div>`);
